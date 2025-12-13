@@ -6690,7 +6690,7 @@ if (true) {
 }
 
 // client/App.vue
-var App_default = "./App-g48gv7np.vue";
+var App_default = "./App-m765nt96.vue";
 
 // client/app.ts
 createApp(App_default).mount("#app");
