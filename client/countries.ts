@@ -133,7 +133,7 @@ export const countries: Country[] = [
   { id: "PY", name: "Paraguay" },
   { id: "QA", name: "Qatar" },
   { id: "RO", name: "Romania" },
-  { id: "Russia", name: "Russia" },
+  { id: "RU", name: "Russian Federation" },
   { id: "RW", name: "Rwanda" },
   { id: "Western Sahara", name: "Western Sahara" },
   { id: "SA", name: "Saudi Arabia" },
@@ -168,7 +168,7 @@ export const countries: Country[] = [
   { id: "UZ", name: "Uzbekistan" },
   { id: "VE", name: "Venezuela" },
   { id: "VN", name: "Vietnam" },
-  { id: "VU", name: "Vanuatu" },
+  // { id: "VU", name: "Vanuatu" }, // TODO: small islands not visible on map
   { id: "PS", name: "West Bank" },
   { id: "YE", name: "Yemen" },
   { id: "ZA", name: "South Africa" },
@@ -183,8 +183,16 @@ export function getRandomCountry(): Country {
 
 // Helper function to find country by data-country attribute
 export function findCountryByElement(element: SVGElement): Country | null {
-  const identifier = element.getAttribute('data-country');
-  if (!identifier) return null;
+  const path = element.closest('path') as SVGPathElement | null;
+  const target = path ?? element;
+  const dataCountry = target.getAttribute('data-country')?.trim();
+  const id = target.getAttribute('id')?.trim();
 
-  return countries.find(c => c.id === identifier) || null;
+  if (!dataCountry && !id) return null;
+
+  return countries.find(c => (
+    (id && c.id === id) ||
+    (dataCountry && c.name === dataCountry) ||
+    (dataCountry && c.id === dataCountry)
+  )) || null;
 }

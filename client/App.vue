@@ -5,23 +5,28 @@
     </div>
 
     <div id="scoreboard" class="scoreboard">
-      <div class="">
-        <div v-if="currentCountry" class="">
-          <h2 class="">{{ currentCountry.name }}</h2>
-          <button @click="nextCountry" class="button">
-            Skip
-          </button>
+      <div v-if="currentCountry">
+        <div class="prompt">
+          <h2 class="prompt-value">{{ currentCountry.name }}</h2>
+          <div class="buttons">
+            <button @click="nextCountry" class="button">
+              Skip
+            </button>
+            <button @click="highlightCurrentCountry" class="button">
+              Highlight
+            </button>
+          </div>
         </div>
+      </div>
 
-        <div class="border">
-          <div class="">
-            <div class="">Score</div>
-            <div class="">{{ score }}</div>
-          </div>
-          <div class="">
-            <div class="">Total</div>
-            <div class="">{{ totalAttempts }}</div>
-          </div>
+      <div class="border">
+        <div ref="scoreElement" class="score-section" id="score">
+          <div class="score-title">Score</div>
+          <div class="score-value">{{ score }}</div>
+        </div>
+        <div class="score-section">
+          <div class="score-title">Total</div>
+          <div class="score-value">{{ totalAttempts }}</div>
         </div>
       </div>
     </div>
@@ -50,14 +55,20 @@ const feedback = ref('');
 const feedbackType = ref<'correct' | 'incorrect'>('correct');
 const mapContainer = ref<HTMLDivElement | null>(null);
 const mapWrapper = ref<HTMLDivElement | null>(null);
+const scoreElement = ref<HTMLDivElement | null>(null);
 const foundCountries = ref<Set<string>>(new Set());
+const usedCountryIds = ref<Set<string>>(new Set());
 
 let panzoomInstance: any = null;
 let svgElement: SVGElement | null = null;
 const countryElements = new Map<string, SVGPathElement>();
-let isDragging = false;
+let didDrag = false;
+let pointerActive = false;
 let dragStartX = 0;
 let dragStartY = 0;
+let scoreFlashTimeout: number | null = null;
+let scoreIncorrectFlashTimeout: number | null = null;
+let highlightTimeout: number | null = null;
 
 onMounted(async () => {
   await loadMap();
@@ -68,7 +79,89 @@ onUnmounted(() => {
   if (panzoomInstance) {
     panzoomInstance.destroy();
   }
+  if (scoreFlashTimeout !== null) {
+    window.clearTimeout(scoreFlashTimeout);
+  }
+  if (scoreIncorrectFlashTimeout !== null) {
+    window.clearTimeout(scoreIncorrectFlashTimeout);
+  }
+  if (highlightTimeout !== null) {
+    window.clearTimeout(highlightTimeout);
+  }
 });
+
+const escapeSelector = (value: string) => {
+  if (typeof CSS !== 'undefined' && 'escape' in CSS) {
+    return CSS.escape(value);
+  }
+  return value.replace(/"/g, '\\"');
+};
+
+const getCountryPaths = (country: Country): SVGPathElement[] => {
+  if (!svgElement) {
+    return [];
+  }
+  const id = escapeSelector(country.id);
+  const name = escapeSelector(country.name);
+  const selectors = [
+    `path[id="${id}"]`,
+    `path[data-country="${name}"]`,
+    `path[data-country="${id}"]`
+  ];
+  return Array.from(svgElement.querySelectorAll(selectors.join(','))) as SVGPathElement[];
+};
+
+const setCountryFill = (country: Country, color: string) => {
+  getCountryPaths(country).forEach(path => {
+    path.style.fill = color;
+  });
+};
+
+const flashScore = () => {
+  const element = scoreElement.value;
+  if (!element) {
+    return;
+  }
+  element.classList.add('correct');
+  if (scoreFlashTimeout !== null) {
+    window.clearTimeout(scoreFlashTimeout);
+  }
+  scoreFlashTimeout = window.setTimeout(() => {
+    element.classList.remove('correct');
+    scoreFlashTimeout = null;
+  }, 1000);
+};
+
+const flashScoreIncorrect = () => {
+  const element = scoreElement.value;
+  if (!element) {
+    return;
+  }
+  element.classList.add('incorrect');
+  if (scoreIncorrectFlashTimeout !== null) {
+    window.clearTimeout(scoreIncorrectFlashTimeout);
+  }
+  scoreIncorrectFlashTimeout = window.setTimeout(() => {
+    element.classList.remove('incorrect');
+    scoreIncorrectFlashTimeout = null;
+  }, 1000);
+};
+
+const highlightCurrentCountry = () => {
+  if (!currentCountry.value) {
+    return;
+  }
+  const country = currentCountry.value;
+  setCountryFill(country, '#F19A3E');
+  if (highlightTimeout !== null) {
+    window.clearTimeout(highlightTimeout);
+  }
+  highlightTimeout = window.setTimeout(() => {
+    const isFound = foundCountries.value.has(country.id);
+    setCountryFill(country, isFound ? 'var(--found-country-fill)' : '#e0e0e0');
+    highlightTimeout = null;
+  }, 800);
+};
 
 const loadMap = async () => {
   try {
@@ -116,58 +209,64 @@ const loadMap = async () => {
           path.style.transition = 'fill 0.2s';
           path.style.cursor = 'pointer';
 
-          path.addEventListener('mouseenter', (e: Event) => {
-            const isFound = identifier && foundCountries.value.has(identifier);
-            console.log({ isFound, target: e.target.dataset.country });
-            if (!isFound) {
-              path.style.fill = '#bdbdbd';
+          path.addEventListener('mouseenter', () => {
+            const country = findCountryByElement(path);
+            const isFound = country ? foundCountries.value.has(country.id) : false;
+            if (country && !isFound) {
+              setCountryFill(country, '#bdbdbd');
             }
           });
 
           path.addEventListener('mouseleave', () => {
-            const isFound = identifier && foundCountries.value.has(identifier);
-            if (isFound) {
-              path.style.fill = '#9e9e9e';
-            } else {
-              path.style.fill = '#e0e0e0';
+            const country = findCountryByElement(path);
+            const isFound = country ? foundCountries.value.has(country.id) : false;
+            if (country) {
+              setCountryFill(country, isFound ? 'var(--found-country-fill)' : '#e0e0e0');
             }
           });
 
           path.addEventListener('click', handleCountryClick);
         });
 
-        // Track drag vs click
-        svgElement.addEventListener('mousedown', (e: MouseEvent) => {
-          isDragging = false;
+        // Track drag vs click (pointer events so we can reset even if pointer leaves the svg)
+        const onPointerDown = (e: PointerEvent) => {
+          pointerActive = true;
+          didDrag = false;
           dragStartX = e.clientX;
           dragStartY = e.clientY;
-        });
+        };
 
-        svgElement.addEventListener('mousemove', (e: MouseEvent) => {
-          if (e.buttons === 1) {
-            const deltaX = Math.abs(e.clientX - dragStartX);
-            const deltaY = Math.abs(e.clientY - dragStartY);
-            if (deltaX > 5 || deltaY > 5) {
-              isDragging = true;
-            }
+        const onPointerMove = (e: PointerEvent) => {
+          if (!pointerActive) {
+            return;
           }
-        });
+          const deltaX = Math.abs(e.clientX - dragStartX);
+          const deltaY = Math.abs(e.clientY - dragStartY);
+          if (deltaX > 5 || deltaY > 5) {
+            didDrag = true;
+          }
+        };
+
+        const onPointerUp = () => {
+          pointerActive = false;
+        };
+
+        svgElement.addEventListener('pointerdown', onPointerDown);
+        svgElement.addEventListener('pointermove', onPointerMove);
+        svgElement.addEventListener('pointerup', onPointerUp);
+        svgElement.addEventListener('pointercancel', onPointerUp);
+        window.addEventListener('pointerup', onPointerUp);
+        window.addEventListener('pointercancel', onPointerUp);
 
         // Prevent click events when dragging
         svgElement.addEventListener('click', (e: MouseEvent) => {
-          if (isDragging) {
+          if (didDrag) {
             e.stopPropagation();
             e.preventDefault();
+            didDrag = false;
           }
-        }, true); // Use capture phase to intercept before other handlers
+        }, true);
 
-        svgElement.addEventListener('mouseup', () => {
-          setTimeout(() => {
-            isDragging = false;
-          }, 50); // Increased timeout to ensure click is blocked
-        });
-
-        // Initialize panzoom
         panzoomInstance = Panzoom(svgElement, {
           maxScale: 5,
           minScale: 1,
@@ -178,12 +277,11 @@ const loadMap = async () => {
           easing: 'ease-in-out'
         });
 
-        // Enable mouse wheel zoom with custom step
         if (mapWrapper.value) {
           mapWrapper.value.addEventListener('wheel', (event: WheelEvent) => {
             if (panzoomInstance) {
               panzoomInstance.zoomWithWheel(event, {
-                step: 0.1  // Smaller step = slower zoom
+                step: 0.1
               });
             }
           });
@@ -197,8 +295,7 @@ const loadMap = async () => {
 };
 
 const handleCountryClick = (event: Event) => {
-  // Ignore clicks that were actually drags
-  if (isDragging) {
+  if (didDrag) {
     return;
   }
 
@@ -215,29 +312,30 @@ const handleCountryClick = (event: Event) => {
 
   if (clickedCountry.id === currentCountry.value?.id) {
     score.value++;
+    flashScore();
     feedback.value = `Correct! That's ${currentCountry.value.name}!`;
     feedbackType.value = 'correct';
 
-    // Mark as found
     foundCountries.value.add(clickedCountry.id);
 
-    // Flash the country green
-    target.style.fill = '#4CAF50';
+    setCountryFill(clickedCountry, '#4CAF50');
     setTimeout(() => {
-      // Set to darker gray for found countries
-      target.style.fill = '#9e9e9e';
+      setCountryFill(clickedCountry, 'var(--found-country-fill)');
+    }, 300);
+    setTimeout(() => {
       nextCountry();
     }, 1500);
   } else {
+    flashScoreIncorrect();
     feedback.value = `Try again! That's ${clickedCountry.name}.`;
     feedbackType.value = 'incorrect';
 
-    // Flash incorrect country red
-    target.style.fill = '#f44336';
+    setCountryFill(clickedCountry, '#f44336');
     setTimeout(() => {
-      // Return to normal color (or darker if already found)
       const isFound = foundCountries.value.has(clickedCountry.id);
-      target.style.fill = isFound ? '#9e9e9e' : '#e0e0e0';
+      setCountryFill(clickedCountry, isFound ? 'var(--found-country-fill)' : '#e0e0e0');
+    }, 300);
+    setTimeout(() => {
       feedback.value = '';
     }, 1500);
   }
@@ -245,7 +343,14 @@ const handleCountryClick = (event: Event) => {
 
 const nextCountry = () => {
   feedback.value = '';
-  currentCountry.value = getRandomCountry();
+  let available = countries.filter(country => !usedCountryIds.value.has(country.id));
+  if (available.length === 0) {
+    usedCountryIds.value = new Set();
+    available = [...countries];
+  }
+  const next = available[Math.floor(Math.random() * available.length)];
+  currentCountry.value = next;
+  usedCountryIds.value.add(next.id);
 };
 </script>
 
