@@ -1,6 +1,6 @@
 # Country Memory Game
 
-An interactive political map game where users test their geography knowledge by clicking on countries. Totally vibe coded.
+An interactive political map game where users test their geography knowledge by clicking on countries. **Totally vibe coded except for styles.**
 
 ## Tech Stack
 
@@ -49,8 +49,8 @@ bun run start
 
 ## TODO
 
-- [ ] Integrate actual world map SVG with clickable countries
-- [ ] Implement proper country detection from SVG paths
+- [✔︎] Integrate actual world map SVG with clickable countries
+- [✔︎] Implement proper country detection from SVG paths
 - [ ] Add difficulty levels (continents, regions, etc.)
 - [ ] Add timer mode
 - [ ] Persist high scores
