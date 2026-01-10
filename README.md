@@ -1,6 +1,6 @@
 # Country Memory Game
 
-An interactive political map game where users test their geography knowledge by clicking on countries.
+An interactive political map game where users test their geography knowledge by clicking on countries. Totally vibe coded.
 
 ## Tech Stack
 

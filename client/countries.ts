@@ -181,12 +181,9 @@ export function getRandomCountry(): Country {
   return countries[Math.floor(Math.random() * countries.length)];
 }
 
-// Helper function to find country by ID or class name
+// Helper function to find country by data-country attribute
 export function findCountryByElement(element: SVGElement): Country | null {
-  const id = element.getAttribute('id');
-  const className = element.getAttribute('class');
-
-  const identifier = id || className;
+  const identifier = element.getAttribute('data-country');
   if (!identifier) return null;
 
   return countries.find(c => c.id === identifier) || null;
