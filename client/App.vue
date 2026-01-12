@@ -5,7 +5,11 @@
     </div>
 
     <div id="scoreboard" class="scoreboard">
-      <div v-if="currentCountry">
+      <div v-if="gameCompleted" class="prompt prompt-complete">
+        <h2 class="prompt-value">All countries completed!</h2>
+        <p class="prompt-subtitle">Final score: {{ score }} / {{ totalAttempts }}</p>
+      </div>
+      <div v-else-if="currentCountry">
         <div class="prompt">
           <h2 class="prompt-value">{{ currentCountry.name }}</h2>
           <div class="buttons">
@@ -56,6 +60,7 @@ const feedbackType = ref<'correct' | 'incorrect'>('correct');
 const mapContainer = ref<HTMLDivElement | null>(null);
 const mapWrapper = ref<HTMLDivElement | null>(null);
 const scoreElement = ref<HTMLDivElement | null>(null);
+const gameCompleted = ref(false);
 const foundCountries = ref<Set<string>>(new Set());
 const usedCountryIds = ref<Set<string>>(new Set());
 
@@ -343,10 +348,16 @@ const handleCountryClick = (event: Event) => {
 
 const nextCountry = () => {
   feedback.value = '';
-  let available = countries.filter(country => !usedCountryIds.value.has(country.id));
+  const remaining = countries.filter(country => !foundCountries.value.has(country.id));
+  if (remaining.length === 0) {
+    gameCompleted.value = true;
+    currentCountry.value = null;
+    return;
+  }
+  let available = remaining.filter(country => !usedCountryIds.value.has(country.id));
   if (available.length === 0) {
     usedCountryIds.value = new Set();
-    available = [...countries];
+    available = remaining;
   }
   const next = available[Math.floor(Math.random() * available.length)];
   currentCountry.value = next;
