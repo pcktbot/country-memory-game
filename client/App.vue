@@ -165,7 +165,7 @@ const highlightCurrentCountry = () => {
 
 const loadMap = async () => {
   try {
-    const response = await fetch('/world.svg');
+    const response = await fetch(`${import.meta.env.BASE_URL}world.svg`);
     const svgText = await response.text();
 
     if (mapWrapper.value) {
