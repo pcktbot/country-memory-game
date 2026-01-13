@@ -11,7 +11,10 @@
       </div>
       <template v-else-if="currentCountry">
         <div class="prompt">
-          <h2 class="prompt-value">{{ currentCountry.name }}</h2>
+          <h2 class="prompt-value">
+            <span v-if="currentCountry.flag" class="prompt-flag">{{ currentCountry.flag }}</span>
+            <span class="prompt-name">{{ currentCountry.name }}</span>
+          </h2>
         </div>
         <div class="buttons">
           <button @click="nextCountry" class="button">

@@ -4,9 +4,12 @@
 export interface Country {
   id: string;  // The ID or class from the SVG
   name: string; // Full country name
+  flag: string | null; // Emoji flag when available
 }
 
-export const countries: Country[] = [
+type CountrySeed = Omit<Country, 'flag'>;
+
+const countrySeeds: CountrySeed[] = [
   { id: "AF", name: "Afghanistan" },
   { id: "Angola", name: "Angola" },
   { id: "AL", name: "Albania" },
@@ -184,6 +187,63 @@ export const countries: Country[] = [
   { id: "ZM", name: "Zambia" },
   { id: "ZW", name: "Zimbabwe" }
 ];
+
+const flagOverrides: Record<string, string | null> = {
+  Angola: "🇦🇴",
+  Argentina: "🇦🇷",
+  Australia: "🇦🇺",
+  Canada: "🇨🇦",
+  China: "🇨🇳",
+  "Falkland Islands": "🇫🇰",
+  "French Guiana": "🇬🇫",
+  "French Polynesia": "🇵🇫",
+  Indonesia: "🇮🇩",
+  Malaysia: "🇲🇾",
+  Mexico: "🇲🇽",
+  Mauritius: "🇲🇺",
+  "Western Sahara": null,
+  Kosovo: null,
+  FG: "🇬🇫",
+  FP: "🇵🇫",
+  KO: null
+};
+
+const getOverrideFlag = (key: string): string | null | undefined => {
+  if (Object.prototype.hasOwnProperty.call(flagOverrides, key)) {
+    return flagOverrides[key];
+  }
+  return undefined;
+};
+
+const flagFromIsoCode = (code: string): string | null => {
+  const normalized = code.toUpperCase();
+  if (!/^[A-Z]{2}$/.test(normalized)) {
+    return null;
+  }
+  const base = 0x1f1e6;
+  const codePoints = [
+    base + normalized.charCodeAt(0) - 65,
+    base + normalized.charCodeAt(1) - 65
+  ];
+  return String.fromCodePoint(...codePoints);
+};
+
+const getCountryFlag = (country: CountrySeed): string | null => {
+  const idOverride = getOverrideFlag(country.id);
+  if (idOverride !== undefined) {
+    return idOverride;
+  }
+  const nameOverride = getOverrideFlag(country.name);
+  if (nameOverride !== undefined) {
+    return nameOverride;
+  }
+  return flagFromIsoCode(country.id);
+};
+
+export const countries: Country[] = countrySeeds.map(country => ({
+  ...country,
+  flag: getCountryFlag(country)
+}));
 
 // Helper function to get a random country
 export function getRandomCountry(): Country {

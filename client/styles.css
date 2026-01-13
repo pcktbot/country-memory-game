@@ -50,6 +50,13 @@ body {
 }
 .prompt-value {
   padding: 0 0.5em;
+  display: flex;
+  align-items: center;
+  gap: 0.35em;
+}
+.prompt-flag {
+  font-size: 1.25em;
+  line-height: 1;
 }
 .prompt-subtitle {
   padding: 0 0.75em 0.5em;
@@ -150,6 +157,7 @@ body {
   .prompt-value {
     padding: 0.4em 0.5em;
     text-align: center;
+    justify-content: center;
   }
 
   .buttons {
