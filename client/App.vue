@@ -9,19 +9,19 @@
         <h2 class="prompt-value">All countries completed!</h2>
         <p class="prompt-subtitle">Final score: {{ score }} / {{ totalAttempts }}</p>
       </div>
-      <div v-else-if="currentCountry">
+      <template v-else-if="currentCountry">
         <div class="prompt">
           <h2 class="prompt-value">{{ currentCountry.name }}</h2>
-          <div class="buttons">
-            <button @click="nextCountry" class="button">
-              Skip
-            </button>
-            <button @click="highlightCurrentCountry" class="button">
-              Highlight
-            </button>
-          </div>
         </div>
-      </div>
+        <div class="buttons">
+          <button @click="nextCountry" class="button">
+            Skip
+          </button>
+          <button @click="highlightCurrentCountry" class="button">
+            Highlight
+          </button>
+        </div>
+      </template>
 
       <div class="border">
         <div ref="scoreElement" class="score-section" id="score">
