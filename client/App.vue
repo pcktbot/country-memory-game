@@ -275,7 +275,7 @@ const loadMap = async () => {
         }, true);
 
         panzoomInstance = Panzoom(svgElement, {
-          maxScale: 5,
+          maxScale: 12,
           minScale: 1,
           cursor: 'grab',
           canvas: true,
