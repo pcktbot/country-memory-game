@@ -93,6 +93,7 @@ export const countries: Country[] = [
   { id: "KG", name: "Kyrgyzstan" },
   { id: "KH", name: "Cambodia" },
   { id: "KR", name: "South Korea" },
+  { id: "KO", name: "Kosovo" },
   { id: "KW", name: "Kuwait" },
   { id: "LA", name: "Laos" },
   { id: "LB", name: "Lebanon" },
