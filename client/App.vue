@@ -50,14 +50,13 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
 import Panzoom from '@panzoom/panzoom';
-import { countries, getRandomCountry, findCountryByElement, type Country } from './countries';
+import { countries, findCountryByElement, type Country } from './countries';
 
 const score = ref(0);
 const totalAttempts = ref(0);
 const currentCountry = ref<Country | null>(null);
 const feedback = ref('');
 const feedbackType = ref<'correct' | 'incorrect'>('correct');
-const mapContainer = ref<HTMLDivElement | null>(null);
 const mapWrapper = ref<HTMLDivElement | null>(null);
 const scoreElement = ref<HTMLDivElement | null>(null);
 const gameCompleted = ref(false);
@@ -323,7 +322,7 @@ const handleCountryClick = (event: Event) => {
 
     foundCountries.value.add(clickedCountry.id);
 
-    setCountryFill(clickedCountry, '#4CAF50');
+    setCountryFill(clickedCountry, '#85CB33');
     setTimeout(() => {
       setCountryFill(clickedCountry, 'var(--found-country-fill)');
     }, 300);
