@@ -7,7 +7,6 @@ export default defineConfig({
   base: '/country-memory-game/',
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts'],
-    passWithNoTests: true
+    include: ['tests/**/*.test.ts']
   }
 });
