@@ -2,7 +2,11 @@
   <div class="city-map-container" ref="mapContainer" />
 
   <div v-if="mapReady" class="city-panel">
-    <!-- Active round: guessing phase -->
+    <div class="city-nav">
+      <button class="city-back-btn" @click="router.push('/')">← Back</button>
+    </div>
+
+    <!-- Guessing phase -->
     <template v-if="phase === 'guessing'">
       <div class="city-prompt">
         <span class="city-name">{{ currentCity.name }}</span>
@@ -47,17 +51,25 @@
         <h2>Round Complete!</h2>
         <p>Final score: {{ totalScore }} / 1000</p>
         <div class="city-complete-buttons">
-          <button class="button" style="padding: 0.6em 1.5em;" @click="restart(false)">
-            Play Again
-          </button>
-          <button class="button" style="padding: 0.6em 1.5em;" @click="restart(true)">
-            Random Round
-          </button>
+          <template v-if="isRandom">
+            <button class="button" style="padding: 0.6em 1.5em;" @click="restart(false)">
+              Play Daily
+            </button>
+            <button class="button" style="padding: 0.6em 1.5em;" @click="restart(true)">
+              Play Again
+            </button>
+          </template>
+          <template v-else>
+            <span class="city-tomorrow">Come back tomorrow!</span>
+            <button class="button" style="padding: 0.6em 1.5em;" @click="restart(true)">
+              Random Round
+            </button>
+          </template>
         </div>
       </div>
     </template>
 
-    <!-- Round score cells -->
+    <!-- Round score cells (shown in all phases) -->
     <div class="city-rounds">
       <div
         v-for="(city, i) in cities"
@@ -85,14 +97,17 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useMapboxCity } from './useMapboxCity'
 import { selectDailyCities, selectRandomCities } from './citySeeding'
 import { haversineKm, calculateScore } from './cityScoring'
 import { worldCities, usCities } from './cities'
 import type { City } from './cities'
 import type { Difficulty } from './cityScoring'
+import { loadDailyGame, saveDailyGame, type GamePhase } from './cityGameStorage'
 
-const props = defineProps<{ scope: 'world' | 'us' }>()
+const router = useRouter()
+const route = useRoute()
 
 const token = import.meta.env.VITE_MAPBOX_TOKEN as string
 const base = import.meta.env.BASE_URL
@@ -101,28 +116,38 @@ const mapContainer = ref<HTMLElement | null>(null)
 const { mapReady, init, onMapClick, setGuessPin, revealRound, setDistanceLabelText, resetForNextRound, destroy } =
   useMapboxCity(mapContainer, token, base)
 
-type Phase = 'guessing' | 'revealing' | 'complete'
-
-const pool = props.scope === 'world' ? worldCities : usCities
+const pool: City[] = [...worldCities, ...usCities]
 
 const cities = ref<City[]>([])
 const roundIndex = ref(0)
 const guessLngLat = ref<[number, number] | null>(null)
-const phase = ref<Phase>('guessing')
+const phase = ref<GamePhase>('guessing')
 const rounds = ref<number[]>([])
 const lastRoundScore = ref(0)
 const lastDistanceKm = ref<number | null>(null)
+const isRandom = ref(false)
 
 const currentCity = computed(() => cities.value[roundIndex.value])
-
 const totalScore = computed(() => rounds.value.reduce((a, b) => a + b, 0))
 
 const MAX_PTS: Record<Difficulty, number> = { easy: 150, moderate: 250, hard: 350 }
 function maxPts(d: Difficulty) { return MAX_PTS[d] }
 
-function pickCities(forceRandom?: boolean) {
+function saveState() {
+  if (isRandom.value) return
   const today = new Date().toISOString().slice(0, 10)
-  const random = forceRandom ?? new URLSearchParams(window.location.search).get('random') === '1'
+  saveDailyGame({
+    date: today,
+    cityIds: cities.value.map(c => c.id),
+    rounds: rounds.value,
+    roundIndex: roundIndex.value,
+    phase: phase.value
+  })
+}
+
+function startFresh(random: boolean) {
+  const today = new Date().toISOString().slice(0, 10)
+  isRandom.value = random
   cities.value = random ? selectRandomCities(pool) : selectDailyCities(pool, today)
   roundIndex.value = 0
   guessLngLat.value = null
@@ -130,6 +155,7 @@ function pickCities(forceRandom?: boolean) {
   rounds.value = []
   lastRoundScore.value = 0
   lastDistanceKm.value = null
+  saveState()
 }
 
 async function confirmGuess() {
@@ -160,21 +186,41 @@ function advance() {
     phase.value = 'complete'
     resetForNextRound()
   }
+  saveState()
 }
 
 function restart(random: boolean) {
-  const url = new URL(window.location.href)
-  if (random) {
-    url.searchParams.set('random', '1')
-  } else {
-    url.searchParams.delete('random')
-  }
-  window.history.replaceState({}, '', url)
-  pickCities(random)
+  router.replace({ path: '/city', query: random ? { random: '1' } : {} })
+  startFresh(random)
 }
 
 onMounted(() => {
-  pickCities()
+  const today = new Date().toISOString().slice(0, 10)
+  const randomParam = route.query.random === '1'
+
+  if (!randomParam) {
+    const saved = loadDailyGame(today)
+    if (saved) {
+      const restored = saved.cityIds
+        .map(id => pool.find(c => c.id === id))
+        .filter((c): c is City => c !== undefined)
+      if (restored.length === saved.cityIds.length) {
+        isRandom.value = false
+        cities.value = restored
+        rounds.value = saved.rounds
+        roundIndex.value = saved.roundIndex
+        phase.value = saved.phase === 'revealing' ? 'guessing' : saved.phase
+        lastRoundScore.value = saved.rounds[saved.roundIndex - 1] ?? 0
+      } else {
+        startFresh(false)
+      }
+    } else {
+      startFresh(false)
+    }
+  } else {
+    startFresh(true)
+  }
+
   init()
   onMapClick(lngLat => {
     if (phase.value !== 'guessing') return
