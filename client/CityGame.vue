@@ -146,7 +146,7 @@ async function confirmGuess() {
   lastRoundScore.value = score
   rounds.value = [...rounds.value, score]
 
-  await revealRound(city, guess, props.scope)
+  await revealRound(city, guess)
   setDistanceLabelText(`${Math.round(distKm).toLocaleString()} km`)
 }
 

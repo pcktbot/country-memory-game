@@ -218,11 +218,11 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
 
   async function revealRound(
     city: City,
-    guessLngLat: [number, number],
-    scope: 'world' | 'us'
+    guessLngLat: [number, number]
   ): Promise<void> {
     if (!map) return
     const m = map
+    const scope = city.stateName ? 'us' : 'world'
 
     // Highlight boundary
     if (scope === 'world') {
