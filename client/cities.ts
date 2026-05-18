@@ -1,5 +1,23 @@
 import type { Difficulty } from './cityScoring'
 
+export const COUNTRY_NAMES: Record<string, string> = {
+  ARE: 'United Arab Emirates', ARG: 'Argentina',   AUS: 'Australia',
+  BGD: 'Bangladesh',           BRA: 'Brazil',       CAN: 'Canada',
+  CHL: 'Chile',                CHN: 'China',        CIV: 'Ivory Coast',
+  COD: 'DR Congo',             COL: 'Colombia',     DEU: 'Germany',
+  EGY: 'Egypt',                ESP: 'Spain',        FRA: 'France',
+  GBR: 'United Kingdom',       GNQ: 'Eq. Guinea',   IDN: 'Indonesia',
+  IND: 'India',                IRN: 'Iran',         ISL: 'Iceland',
+  ITA: 'Italy',                JPN: 'Japan',        KEN: 'Kenya',
+  KGZ: 'Kyrgyzstan',           KOR: 'South Korea',  LAO: 'Laos',
+  LSO: 'Lesotho',              MAR: 'Morocco',      MEX: 'Mexico',
+  MNG: 'Mongolia',             MRT: 'Mauritania',   NER: 'Niger',
+  NGA: 'Nigeria',              PER: 'Peru',         POL: 'Poland',
+  RUS: 'Russia',               SUR: 'Suriname',     SWE: 'Sweden',
+  THA: 'Thailand',             TKM: 'Turkmenistan', TLS: 'Timor-Leste',
+  TUR: 'Turkey',               USA: 'United States',ZAF: 'South Africa',
+}
+
 export interface City {
   id: string
   name: string

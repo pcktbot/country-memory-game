@@ -6,10 +6,11 @@ const MAX_POINTS: Record<Difficulty, number> = {
   hard: 350
 }
 
-const DECAY_KM: Record<Difficulty, number> = {
-  easy: 300,
-  moderate: 150,
-  hard: 75
+// Distance at which score reaches 0
+const MAX_DISTANCE_KM: Record<Difficulty, number> = {
+  easy: 1500,
+  moderate: 750,
+  hard: 400
 }
 
 export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -24,6 +25,6 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
 
 export function calculateScore(difficulty: Difficulty, distanceKm: number): number {
   const maxPts = MAX_POINTS[difficulty]
-  const decay = DECAY_KM[difficulty]
-  return Math.max(0, Math.round(maxPts * Math.exp(-distanceKm / decay)))
+  const maxDist = MAX_DISTANCE_KM[difficulty]
+  return Math.max(0, Math.round(maxPts * (1 - distanceKm / maxDist)))
 }

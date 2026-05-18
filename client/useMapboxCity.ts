@@ -5,7 +5,7 @@ import type { City } from './cities'
 const GUESS_COLOR = '#F19A3E'
 const ACTUAL_COLOR = '#85CB33'
 const HIGHLIGHT_COLOR = '#3b82f6'
-const CYLINDER_RADIUS_KM = 25
+const CYLINDER_RADIUS_KM = 12
 
 function circlePolygon(
   lngLat: [number, number],
@@ -35,7 +35,7 @@ function animateHeight(
   const frame = (now: number) => {
     const t = Math.min((now - start) / duration, 1)
     const eased = 1 - Math.pow(1 - t, 3)
-    map.setPaintProperty(layerId, 'fill-extrusion-height', targetHeight * eased)
+    map.setPaintProperty(layerId, 'fill-extrusion-height', Math.max(0, targetHeight * eased))
     if (t < 1) {
       rafId = requestAnimationFrame(frame)
       activeRafs.add(rafId)
@@ -58,7 +58,7 @@ function animateFillOpacity(
   let rafId: number
   const frame = (now: number) => {
     const t = Math.min((now - start) / duration, 1)
-    map.setPaintProperty(layerId, 'fill-opacity', target * t)
+    map.setPaintProperty(layerId, 'fill-opacity', Math.max(0, Math.min(1, target * t)))
     if (t < 1) {
       rafId = requestAnimationFrame(frame)
       activeRafs.add(rafId)
@@ -92,26 +92,28 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
     mapboxgl.accessToken = token
     map = new mapboxgl.Map({
       container: container.value,
-      style: 'mapbox://styles/mapbox/outdoors-v12',
+      style: 'mapbox://styles/pcktbot/cmpbfmpec000c01pte0fhaa6o',
       projection: { name: 'globe' },
       zoom: 1.5,
       center: [0, 20],
       maxZoom: 12
     })
 
+    map.addControl(new mapboxgl.NavigationControl(), 'top-right')
+
     map.on('load', async () => {
-      suppressSymbolLayers(map!)
+      suppressLabels(map!)
       await addStaticLayers(map!, base)
       mapReady.value = true
     })
   }
 
-  function suppressSymbolLayers(m: mapboxgl.Map) {
-    m.getStyle().layers.forEach(layer => {
-      if (layer.type === 'symbol') {
-        m.setLayoutProperty(layer.id, 'visibility', 'none')
-      }
-    })
+  function suppressLabels(m: mapboxgl.Map) {
+    // Standard-based styles use config properties — layers aren't directly accessible
+    m.setConfigProperty('basemap', 'showPlaceLabels', false)
+    m.setConfigProperty('basemap', 'showPointOfInterestLabels', false)
+    m.setConfigProperty('basemap', 'showRoadLabels', false)
+    m.setConfigProperty('basemap', 'showTransitLabels', false)
   }
 
   async function addStaticLayers(m: mapboxgl.Map, base: string) {
@@ -144,7 +146,7 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
     // Store for use in reveal
     ;(m as any)._statesData = states
 
-    // Guess cylinder
+    // Guess cylinder + base disc
     m.addSource('guess-cylinder', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] }
@@ -157,11 +159,17 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
         'fill-extrusion-color': GUESS_COLOR,
         'fill-extrusion-height': 0,
         'fill-extrusion-base': 0,
-        'fill-extrusion-opacity': 0.9
+        'fill-extrusion-opacity': 0.6
       }
     })
+    m.addLayer({
+      id: 'guess-base-layer',
+      type: 'fill',
+      source: 'guess-cylinder',
+      paint: { 'fill-color': GUESS_COLOR, 'fill-opacity': 0.9 }
+    })
 
-    // Actual city cylinder
+    // Actual city cylinder + base disc
     m.addSource('actual-cylinder', {
       type: 'geojson',
       data: { type: 'FeatureCollection', features: [] }
@@ -174,8 +182,14 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
         'fill-extrusion-color': ACTUAL_COLOR,
         'fill-extrusion-height': 0,
         'fill-extrusion-base': 0,
-        'fill-extrusion-opacity': 0.9
+        'fill-extrusion-opacity': 0.6
       }
+    })
+    m.addLayer({
+      id: 'actual-base-layer',
+      type: 'fill',
+      source: 'actual-cylinder',
+      paint: { 'fill-color': ACTUAL_COLOR, 'fill-opacity': 0.9 }
     })
 
     // Distance line
@@ -241,9 +255,12 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
       animateFillOpacity(m, 'state-highlight-fill', 0.35, activeRafs, 600)
     }
 
-    // Fly to the city region
+    // Fit both points in view with padding so neither gets clipped on narrow screens
+    const bounds = new mapboxgl.LngLatBounds()
+    bounds.extend(guessLngLat)
+    bounds.extend([city.lng, city.lat])
     await new Promise<void>(resolve => {
-      m.flyTo({ center: [city.lng, city.lat], zoom: 4.5, duration: 1800 })
+      m.fitBounds(bounds, { padding: 80, maxZoom: 4.5, pitch: 55, duration: 1800 })
       m.once('moveend', () => resolve())
     })
 
@@ -316,8 +333,8 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
     distanceMarker = null
     distanceLabelEl = null
 
-    // Fly back to globe view
-    m.flyTo({ zoom: 1.5, center: [0, 20], duration: 1200 })
+    // Fly back to globe view, reset pitch
+    m.flyTo({ zoom: 1.5, center: [0, 20], pitch: 0, duration: 1200 })
   }
 
   function destroy() {

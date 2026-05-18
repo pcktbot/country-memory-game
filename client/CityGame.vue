@@ -9,7 +9,7 @@
     <!-- Guessing phase -->
     <template v-if="phase === 'guessing'">
       <div class="city-prompt">
-        <span class="city-name">{{ currentCity.name }}</span>
+        <span class="city-name">{{ currentCity.name }}, {{ cityRegion(currentCity) }}</span>
         <span :class="['difficulty-badge', currentCity.difficulty]">
           {{ currentCity.difficulty }}
         </span>
@@ -30,7 +30,7 @@
     <!-- Reveal phase -->
     <template v-else-if="phase === 'revealing'">
       <div class="city-prompt">
-        <span class="city-name">{{ currentCity.name }}</span>
+        <span class="city-name">{{ currentCity.name }}, {{ cityRegion(currentCity) }}</span>
         <span class="city-round-score" style="font-size:1.1em;">
           +{{ lastRoundScore }} pts
         </span>
@@ -101,10 +101,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { useMapboxCity } from './useMapboxCity'
 import { selectDailyCities, selectRandomCities } from './citySeeding'
 import { haversineKm, calculateScore } from './cityScoring'
-import { worldCities, usCities } from './cities'
+import { worldCities, usCities, COUNTRY_NAMES } from './cities'
 import type { City } from './cities'
 import type { Difficulty } from './cityScoring'
 import { loadDailyGame, saveDailyGame, type GamePhase } from './cityGameStorage'
+
+function cityRegion(city: City): string {
+  return city.stateName ?? COUNTRY_NAMES[city.countryCode] ?? city.countryCode
+}
 
 const router = useRouter()
 const route = useRoute()
