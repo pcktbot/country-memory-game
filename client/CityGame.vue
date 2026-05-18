@@ -172,6 +172,18 @@ async function confirmGuess() {
   lastRoundScore.value = score
   rounds.value = [...rounds.value, score]
 
+  if (!isRandom.value) {
+    const today = new Date().toISOString().slice(0, 10)
+    const nextIndex = roundIndex.value + 1
+    saveDailyGame({
+      date: today,
+      cityIds: cities.value.map(c => c.id),
+      rounds: rounds.value,
+      roundIndex: nextIndex < cities.value.length ? nextIndex : roundIndex.value,
+      phase: nextIndex < cities.value.length ? 'guessing' : 'complete'
+    })
+  }
+
   await revealRound(city, guess)
   setDistanceLabelText(`${Math.round(distKm).toLocaleString()} km`)
 }
