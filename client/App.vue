@@ -11,34 +11,30 @@
       >
         {{ mode.label }}
       </button>
+      <button class="mode-button" @click="router.push('/city')">City Game</button>
     </div>
 
     <MapGame
-      v-if="activeMode.type === 'svg'"
       :key="activeMode.id"
       :items="activeMode.items"
       :map-url="activeMode.mapUrl"
       :completed-label="activeMode.completedLabel"
       :show-flag="activeMode.showFlag"
     />
-    <CityGame
-      v-else-if="activeMode.type === 'city'"
-      :key="activeMode.id"
-      :scope="activeMode.scope"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import MapGame from './MapGame.vue';
-import CityGame from './CityGame.vue';
-import { countries } from './countries';
-import { states } from './states';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import MapGame from './MapGame.vue'
+import { countries } from './countries'
+import { states } from './states'
+
+const router = useRouter()
 
 interface SvgMode {
   id: string
-  type: 'svg'
   label: string
   mapUrl: string
   completedLabel: string
@@ -46,19 +42,9 @@ interface SvgMode {
   items: { id: string; name: string; flag?: string | null }[]
 }
 
-interface CityMode {
-  id: string
-  type: 'city'
-  label: string
-  scope: 'world' | 'us'
-}
-
-type GameMode = SvgMode | CityMode
-
-const modes: GameMode[] = [
+const modes: SvgMode[] = [
   {
     id: 'countries',
-    type: 'svg',
     label: 'Countries',
     mapUrl: 'world.svg',
     completedLabel: 'All countries completed!',
@@ -67,30 +53,17 @@ const modes: GameMode[] = [
   },
   {
     id: 'states',
-    type: 'svg',
     label: 'US States',
     mapUrl: 'us.svg',
     completedLabel: 'All states completed!',
     showFlag: false,
     items: states
-  },
-  {
-    id: 'world-cities',
-    type: 'city',
-    label: 'World Cities',
-    scope: 'world'
-  },
-  {
-    id: 'us-cities',
-    type: 'city',
-    label: 'US Cities',
-    scope: 'us'
   }
 ]
 
-const activeMode = ref<GameMode>(modes[0])
+const activeMode = ref<SvgMode>(modes[0])
 
-const setMode = (mode: GameMode) => {
+function setMode(mode: SvgMode) {
   activeMode.value = mode
 }
 </script>
