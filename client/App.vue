@@ -11,6 +11,7 @@
       >
         {{ mode.label }}
       </button>
+      <button class="mode-button" @click="router.push('/city')">City Game</button>
     </div>
 
     <MapGame
@@ -24,21 +25,24 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import MapGame from './MapGame.vue';
-import { countries } from './countries';
-import { states } from './states';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import MapGame from './MapGame.vue'
+import { countries } from './countries'
+import { states } from './states'
 
-interface GameMode {
-  id: string;
-  label: string;
-  mapUrl: string;
-  completedLabel: string;
-  showFlag: boolean;
-  items: { id: string; name: string; flag?: string | null }[];
+const router = useRouter()
+
+interface SvgMode {
+  id: string
+  label: string
+  mapUrl: string
+  completedLabel: string
+  showFlag: boolean
+  items: { id: string; name: string; flag?: string | null }[]
 }
 
-const modes: GameMode[] = [
+const modes: SvgMode[] = [
   {
     id: 'countries',
     label: 'Countries',
@@ -55,11 +59,11 @@ const modes: GameMode[] = [
     showFlag: false,
     items: states
   }
-];
+]
 
-const activeMode = ref<GameMode>(modes[0]);
+const activeMode = ref<SvgMode>(modes[0])
 
-const setMode = (mode: GameMode) => {
-  activeMode.value = mode;
-};
+function setMode(mode: SvgMode) {
+  activeMode.value = mode
+}
 </script>

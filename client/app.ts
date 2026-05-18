@@ -1,5 +1,7 @@
-import { createApp } from 'vue';
-import App from './App.vue';
-import './styles.css';
+import { createApp } from 'vue'
+import RouterShell from './RouterShell.vue'
+import { router } from './router'
+import './styles.css'
+import 'mapbox-gl/dist/mapbox-gl.css'
 
-createApp(App).mount('#app');
+createApp(RouterShell).use(router).mount('#app')
