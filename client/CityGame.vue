@@ -133,6 +133,7 @@ function pickCities(forceRandom?: boolean) {
 }
 
 async function confirmGuess() {
+  if (phase.value !== 'guessing') return
   if (!guessLngLat.value || !currentCity.value) return
   phase.value = 'revealing'
 
