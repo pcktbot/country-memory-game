@@ -27,31 +27,47 @@ function animateHeight(
   map: mapboxgl.Map,
   layerId: string,
   targetHeight: number,
+  activeRafs: Set<number>,
   duration = 900
 ): void {
   const start = performance.now()
+  let rafId: number
   const frame = (now: number) => {
     const t = Math.min((now - start) / duration, 1)
     const eased = 1 - Math.pow(1 - t, 3)
     map.setPaintProperty(layerId, 'fill-extrusion-height', targetHeight * eased)
-    if (t < 1) requestAnimationFrame(frame)
+    if (t < 1) {
+      rafId = requestAnimationFrame(frame)
+      activeRafs.add(rafId)
+    } else {
+      activeRafs.delete(rafId)
+    }
   }
-  requestAnimationFrame(frame)
+  rafId = requestAnimationFrame(frame)
+  activeRafs.add(rafId)
 }
 
 function animateFillOpacity(
   map: mapboxgl.Map,
   layerId: string,
   target: number,
+  activeRafs: Set<number>,
   duration = 500
 ): void {
   const start = performance.now()
+  let rafId: number
   const frame = (now: number) => {
     const t = Math.min((now - start) / duration, 1)
     map.setPaintProperty(layerId, 'fill-opacity', target * t)
-    if (t < 1) requestAnimationFrame(frame)
+    if (t < 1) {
+      rafId = requestAnimationFrame(frame)
+      activeRafs.add(rafId)
+    } else {
+      activeRafs.delete(rafId)
+    }
   }
-  requestAnimationFrame(frame)
+  rafId = requestAnimationFrame(frame)
+  activeRafs.add(rafId)
 }
 
 let statesGeoJson: GeoJSON.FeatureCollection | null = null
@@ -69,6 +85,7 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
   let guessMarker: mapboxgl.Marker | null = null
   let distanceMarker: mapboxgl.Marker | null = null
   let distanceLabelEl: HTMLElement | null = null
+  const activeRafs = new Set<number>()
 
   function init() {
     if (!container.value) return
@@ -200,6 +217,8 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
   }
 
   function destroy() {
+    activeRafs.forEach(id => cancelAnimationFrame(id))
+    activeRafs.clear()
     guessMarker?.remove()
     distanceMarker?.remove()
     map?.remove()
@@ -207,5 +226,5 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
     mapReady.value = false
   }
 
-  return { mapReady, map: () => map, init, onMapClick, setGuessPin, destroy }
+  return { mapReady, map: () => map, activeRafs, init, onMapClick, setGuessPin, destroy }
 }
