@@ -216,6 +216,110 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
     }
   }
 
+  async function revealRound(
+    city: City,
+    guessLngLat: [number, number],
+    scope: 'world' | 'us'
+  ): Promise<void> {
+    if (!map) return
+    const m = map
+
+    // Highlight boundary
+    if (scope === 'world') {
+      m.setFilter('country-highlight-fill', ['==', ['get', 'iso_3166_1_alpha_3'], city.countryCode])
+      animateFillOpacity(m, 'country-highlight-fill', 0.35, activeRafs, 600)
+    } else {
+      const states: GeoJSON.FeatureCollection = (m as any)._statesData
+      const stateFeature = states.features.find(
+        (f: any) => f.properties?.name === city.stateName
+      )
+      ;(m.getSource('state-highlight') as mapboxgl.GeoJSONSource).setData(
+        stateFeature
+          ? { type: 'FeatureCollection', features: [stateFeature] }
+          : { type: 'FeatureCollection', features: [] }
+      )
+      animateFillOpacity(m, 'state-highlight-fill', 0.35, activeRafs, 600)
+    }
+
+    // Fly to the city region
+    await new Promise<void>(resolve => {
+      m.flyTo({ center: [city.lng, city.lat], zoom: 4.5, duration: 1800 })
+      m.once('moveend', () => resolve())
+    })
+
+    // Remove guess pin marker (replaced by cylinder)
+    guessMarker?.remove()
+    guessMarker = null
+
+    // Place guess cylinder
+    ;(m.getSource('guess-cylinder') as mapboxgl.GeoJSONSource).setData(
+      circlePolygon(guessLngLat, CYLINDER_RADIUS_KM)
+    )
+    animateHeight(m, 'guess-cylinder-layer', 180000, activeRafs)
+
+    // Place actual city cylinder (slight delay so they appear sequentially)
+    await new Promise(r => setTimeout(r, 300))
+    ;(m.getSource('actual-cylinder') as mapboxgl.GeoJSONSource).setData(
+      circlePolygon([city.lng, city.lat], CYLINDER_RADIUS_KM)
+    )
+    animateHeight(m, 'actual-cylinder-layer', 300000, activeRafs)
+
+    // Draw distance line
+    ;(m.getSource('distance-line') as mapboxgl.GeoJSONSource).setData({
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [guessLngLat, [city.lng, city.lat]]
+      },
+      properties: {}
+    })
+
+    // Distance label at midpoint
+    const midLng = (guessLngLat[0] + city.lng) / 2
+    const midLat = (guessLngLat[1] + city.lat) / 2
+    distanceLabelEl = document.createElement('div')
+    distanceLabelEl.className = 'distance-label'
+    distanceMarker?.remove()
+    distanceMarker = new mapboxgl.Marker({ element: distanceLabelEl, anchor: 'bottom' })
+      .setLngLat([midLng, midLat])
+      .addTo(m)
+  }
+
+  function setDistanceLabelText(text: string) {
+    if (distanceLabelEl) distanceLabelEl.textContent = text
+  }
+
+  function resetForNextRound() {
+    if (!map) return
+    const m = map
+
+    // Cancel any in-flight animations
+    activeRafs.forEach(id => cancelAnimationFrame(id))
+    activeRafs.clear()
+
+    // Hide boundary highlights
+    m.setPaintProperty('country-highlight-fill', 'fill-opacity', 0)
+    m.setPaintProperty('state-highlight-fill', 'fill-opacity', 0)
+
+    // Clear cylinders
+    const empty: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
+    ;(m.getSource('guess-cylinder') as mapboxgl.GeoJSONSource).setData(empty)
+    ;(m.getSource('actual-cylinder') as mapboxgl.GeoJSONSource).setData(empty)
+    ;(m.getSource('distance-line') as mapboxgl.GeoJSONSource).setData(empty)
+    m.setPaintProperty('guess-cylinder-layer', 'fill-extrusion-height', 0)
+    m.setPaintProperty('actual-cylinder-layer', 'fill-extrusion-height', 0)
+
+    // Remove markers
+    guessMarker?.remove()
+    guessMarker = null
+    distanceMarker?.remove()
+    distanceMarker = null
+    distanceLabelEl = null
+
+    // Fly back to globe view
+    m.flyTo({ zoom: 1.5, center: [0, 20], duration: 1200 })
+  }
+
   function destroy() {
     activeRafs.forEach(id => cancelAnimationFrame(id))
     activeRafs.clear()
@@ -226,5 +330,15 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
     mapReady.value = false
   }
 
-  return { mapReady, map: () => map, activeRafs, init, onMapClick, setGuessPin, destroy }
+  return {
+    mapReady,
+    map: () => map,
+    init,
+    onMapClick,
+    setGuessPin,
+    revealRound,
+    setDistanceLabelText,
+    resetForNextRound,
+    destroy
+  }
 }
