@@ -23,7 +23,11 @@ function build(
   W: number,
   H: number
 ) {
-  const features = allFeatures.filter(f => f.properties?.adm0_a3 === countryCode)
+  const EXCLUDE = new Set(['Paracel Islands', 'Spratly Islands'])
+  const features = allFeatures.filter(f =>
+    f.properties?.adm0_a3 === countryCode &&
+    !EXCLUDE.has(((f.properties?.name ?? '') as string).trim())
+  )
   if (features.length === 0) throw new Error(`No features found for ${countryCode}`)
 
   const fc = { type: 'FeatureCollection' as const, features }

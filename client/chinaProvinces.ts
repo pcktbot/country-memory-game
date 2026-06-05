@@ -19,7 +19,6 @@ export const chinaProvinces = [
   { id: "Jilin", name: "Jilin" },
   { id: "Liaoning", name: "Liaoning" },
   { id: "Ningxia", name: "Ningxia" },
-  { id: "Paracel Islands", name: "Paracel Islands" },
   { id: "Qinghai", name: "Qinghai" },
   { id: "Shaanxi", name: "Shaanxi" },
   { id: "Shandong", name: "Shandong" },
