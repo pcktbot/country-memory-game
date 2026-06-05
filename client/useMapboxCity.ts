@@ -255,6 +255,10 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
       animateFillOpacity(m, 'state-highlight-fill', 0.35, activeRafs, 600)
     }
 
+    // Focus the canvas before animating so Mapbox's WebGL render loop stays active
+    // (clicking the Confirm button outside the map pauses rendering otherwise)
+    m.getCanvas().focus()
+
     // Fit both points in view with padding so neither gets clipped on narrow screens
     const bounds = new mapboxgl.LngLatBounds()
     bounds.extend(guessLngLat)
@@ -263,6 +267,7 @@ export function useMapboxCity(container: Ref<HTMLElement | null>, token: string,
       m.fitBounds(bounds, { padding: 80, maxZoom: 4.5, pitch: 55, duration: 1800 })
       m.once('moveend', () => resolve())
     })
+    m.triggerRepaint()
 
     // Remove guess pin marker (replaced by cylinder)
     guessMarker?.remove()
