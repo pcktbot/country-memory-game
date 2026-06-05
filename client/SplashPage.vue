@@ -2,10 +2,10 @@
   <div class="splash">
     <h1 class="splash-title">Map Games</h1>
     <div class="splash-grid">
-      <button class="splash-card" @click="router.push('/countries')">🌍 Countries</button>
-      <button class="splash-card" @click="router.push('/us')">🗺️ US States</button>
-      <button class="splash-card" @click="router.push('/asia')">🌏 India & China</button>
-      <button class="splash-card" @click="router.push('/city')">📍 City Game</button>
+      <button class="splash-card" aria-label="Play Countries game" @click="router.push('/countries')">🌍 Countries</button>
+      <button class="splash-card" aria-label="Play US States game" @click="router.push('/us')">🗺️ US States</button>
+      <button class="splash-card" aria-label="Play India and China game" @click="router.push('/asia')">🌏 India & China</button>
+      <button class="splash-card" aria-label="Play City Game" @click="router.push('/city')">📍 City Game</button>
     </div>
   </div>
 </template>
@@ -63,6 +63,11 @@ const router = useRouter()
 
 .splash-card:active {
   transform: scale(0.97);
+}
+
+.splash-card:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.6);
+  outline-offset: 3px;
 }
 
 @media (max-width: 360px) {
