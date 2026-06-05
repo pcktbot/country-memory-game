@@ -17,10 +17,13 @@
     "vue-router": "^5.0.7"
   },
   "devDependencies": {
+    "@types/d3-geo": "^3.1.0",
     "@types/express": "^4.17.21",
+    "@types/geojson": "^7946.0.16",
     "@types/mapbox-gl": "^3.5.0",
     "@types/node": "^25.0.1",
     "@vitejs/plugin-vue": "^5",
+    "d3-geo": "^3.1.1",
     "jsdom": "24",
     "typescript": "^5.3.3",
     "vite": "^5",
